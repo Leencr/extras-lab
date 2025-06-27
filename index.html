@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Horas Extra</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-xl">
+    <h1 class="text-2xl font-bold mb-4">Planificador de Horas Extra</h1>
+
+    <label for="horas" class="block font-semibold">¿Cuántas horas extra desea hacer?</label>
+    <input type="number" id="horas" class="w-full p-2 border rounded my-2" min="0" step="0.25">
+
+    <label for="pago-hora" class="block font-semibold mt-4">Pago por hora base (puede ajustarse):</label>
+    <input type="number" id="pago-hora" class="w-full p-2 border rounded my-2" value="2980.11" step="0.01">
+
+    <label for="tipo" class="block font-semibold mt-4">Tipo de hora extra:</label>
+    <select id="tipo" class="w-full p-2 border rounded">
+      <option value="1.5">Normal (1.5x)</option>
+      <option value="3">Feriado (3x)</option>
+    </select>
+
+    <button onclick="calcular()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calcular</button>
+
+    <div id="resultado" class="mt-6"></div>
+
+    <a href="https://leencr.github.io/" class="inline-block mt-6 text-blue-600 hover:underline">⬅️ Volver a la página de inicio</a>
+  </div>
+
+  <script>
+    function calcular() {
+      const horas = parseFloat(document.getElementById('horas').value);
+      const pagoHora = parseFloat(document.getElementById('pago-hora').value);
+      const tipoExtra = parseFloat(document.getElementById('tipo').value);
+
+      if (isNaN(horas) || horas <= 0) {
+        document.getElementById('resultado').innerHTML = '<p class="text-red-600">Ingrese una cantidad válida de horas.</p>';
+        return;
+      }
+
+      const descansoMin = Math.floor(horas) * 5;
+      const bloquesDescanso = Math.floor(horas / 2);
+      const descansoRecomendado = bloquesDescanso * 15;
+      const incluyeAlmuerzo = horas >= 8 && horas <= 12;
+
+      const salarioBrutoExtra = horas * pagoHora * tipoExtra;
+      const netoExtra = salarioBrutoExtra * (1 - 0.1067);
+
+      const alertaRenta = salarioBrutoExtra >= 464500 ? '⚠️ Alerta: Este monto podría exceder el mínimo para el cobro de renta (₡464,500).' : '';
+
+      document.getElementById('resultado').innerHTML = `
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p><strong>Total descanso legal acumulado:</strong> ${descansoMin} minutos</p>
+          <p><strong>Descansos recomendados:</strong> ${bloquesDescanso} bloques de 15 minutos (${descansoRecomendado} minutos)</p>
+          <p><strong>${incluyeAlmuerzo ? '✅ Incluye' : '❌ No incluye'} 1 hora de almuerzo pagada</strong></p>
+          <p><strong>Pago bruto estimado:</strong> ₡${salarioBrutoExtra.toFixed(2)}</p>
+          <p><strong>Pago neto estimado (tras CCSS):</strong> ₡${netoExtra.toFixed(2)}</p>
+          <p class="mt-2 text-red-600 font-semibold">${alertaRenta}</p>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
