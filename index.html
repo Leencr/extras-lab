@@ -10,8 +10,11 @@
   <div class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-xl">
     <h1 class="text-2xl font-bold mb-4">Planificador de Horas Extra</h1>
 
-    <label for="horas" class="block font-semibold">¿Cuántas horas extra desea hacer?</label>
-    <input type="number" id="horas" class="w-full p-2 border rounded my-2" min="0" step="0.25">
+    <label for="inicio" class="block font-semibold">Hora de inicio de extras:</label>
+    <input type="time" id="inicio" class="w-full p-2 border rounded my-2">
+
+    <label for="fin" class="block font-semibold">Hora de fin de extras:</label>
+    <input type="time" id="fin" class="w-full p-2 border rounded my-2">
 
     <label for="pago-hora" class="block font-semibold mt-4">Pago por hora base (puede ajustarse):</label>
     <input type="number" id="pago-hora" class="w-full p-2 border rounded my-2" value="2980.11" step="0.01">
@@ -31,16 +34,29 @@
 
   <script>
     function calcular() {
-      const horas = parseFloat(document.getElementById('horas').value);
+      const inicio = document.getElementById('inicio').value;
+      const fin = document.getElementById('fin').value;
       const pagoHora = parseFloat(document.getElementById('pago-hora').value);
       const tipoExtra = parseFloat(document.getElementById('tipo').value);
 
-      if (isNaN(horas) || horas <= 0) {
-        document.getElementById('resultado').innerHTML = '<p class="text-red-600">Ingrese una cantidad válida de horas.</p>';
+      if (!inicio || !fin) {
+        document.getElementById('resultado').innerHTML = '<p class="text-red-600">Ingrese horas válidas de inicio y fin.</p>';
         return;
       }
 
-      const descansoMin = Math.floor(horas) * 5;
+      const [hInicio, mInicio] = inicio.split(":").map(Number);
+      const [hFin, mFin] = fin.split(":").map(Number);
+      const inicioMin = hInicio * 60 + mInicio;
+      const finMin = hFin * 60 + mFin;
+      const totalMin = finMin - inicioMin;
+
+      if (totalMin <= 0) {
+        document.getElementById('resultado').innerHTML = '<p class="text-red-600">La hora de fin debe ser después de la hora de inicio.</p>';
+        return;
+      }
+
+      const horas = totalMin / 60;
+      const descansoLegal = Math.floor(horas) * 5;
       const bloquesDescanso = Math.floor(horas / 2);
       const descansoRecomendado = bloquesDescanso * 15;
       const incluyeAlmuerzo = horas >= 8 && horas <= 12;
@@ -50,10 +66,30 @@
 
       const alertaRenta = salarioBrutoExtra >= 464500 ? '⚠️ Alerta: Este monto podría exceder el mínimo para el cobro de renta (₡464,500).' : '';
 
+      let descansos = bloquesDescanso > 0 ? [] : null;
+      if (descansos !== null) {
+        for (let i = 1; i <= bloquesDescanso; i++) {
+          const tiempoMin = inicioMin + i * 120;
+          const horasDesc = Math.floor(tiempoMin / 60).toString().padStart(2, '0');
+          const minutosDesc = (tiempoMin % 60).toString().padStart(2, '0');
+          descansos.push(`${horasDesc}:${minutosDesc}`);
+        }
+      }
+
+      let alternativa = null;
+      if (horas >= 2) {
+        const medio = inicioMin + totalMin / 2;
+        const hAlt = Math.floor(medio / 60).toString().padStart(2, '0');
+        const mAlt = (medio % 60).toString().padStart(2, '0');
+        alternativa = `${hAlt}:${mAlt}`;
+      }
+
       document.getElementById('resultado').innerHTML = `
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p><strong>Total descanso legal acumulado:</strong> ${descansoMin} minutos</p>
-          <p><strong>Descansos recomendados:</strong> ${bloquesDescanso} bloques de 15 minutos (${descansoRecomendado} minutos)</p>
+          <p><strong>Total de horas extra:</strong> ${horas.toFixed(2)} hrs</p>
+          <p><strong>Descanso legal acumulado:</strong> ${descansoLegal} minutos</p>
+          <p><strong>Descansos recomendados:</strong> ${bloquesDescanso} bloques de 15 min${descansos ? ` (a las ${descansos.join(', ')})` : ''}</p>
+          ${alternativa ? `<p><strong>O un descanso de 30 min a las:</strong> ${alternativa}</p>` : ''}
           <p><strong>${incluyeAlmuerzo ? '✅ Incluye' : '❌ No incluye'} 1 hora de almuerzo pagada</strong></p>
           <p><strong>Pago bruto estimado:</strong> ₡${salarioBrutoExtra.toFixed(2)}</p>
           <p><strong>Pago neto estimado (tras CCSS):</strong> ₡${netoExtra.toFixed(2)}</p>
@@ -61,8 +97,8 @@
         </div>`;
     }
   </script>
-   <a href="https://leencr.github.io/" class="fixed bottom-4 left-4 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg hover:bg-indigo-700 z-50">
-  ⬅️ Volver a la pagina de inicio
+  <a href="https://leencr.github.io/" class="fixed bottom-4 left-4 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg hover:bg-indigo-700 z-50">
+  ⬅️ Volver a inicio
 </a>
 </body>
 </html>
