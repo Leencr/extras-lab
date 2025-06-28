@@ -44,8 +44,8 @@
         return;
       }
 
-      const [hInicio, mInicio] = inicio.split(":").map(Number);
-      const [hFin, mFin] = fin.split(":").map(Number);
+      const [hInicio, mInicio] = inicio.split(":" ).map(Number);
+      const [hFin, mFin] = fin.split(":" ).map(Number);
       const inicioMin = hInicio * 60 + mInicio;
       const finMin = hFin * 60 + mFin;
       const totalMin = finMin - inicioMin;
@@ -59,47 +59,55 @@
       let descansoText = '';
       let descansos = [];
       let incluyeAlmuerzo = false;
+      let almuerzoSugerido = null;
 
       if (horas <= 1) {
-        descansoText = '5 minutos de descanso';
-        descansos = [5];
+        descansoText = '5 minutos de descanso'; descansos = [5];
       } else if (horas <= 2) {
-        descansoText = '10 minutos de descanso';
-        descansos = [10];
+        descansoText = '10 minutos de descanso'; descansos = [10];
       } else if (horas <= 4) {
-        descansoText = '15 minutos de descanso';
-        descansos = [15];
+        descansoText = '15 minutos de descanso'; descansos = [15];
       } else if (horas === 5) {
-        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos)';
-        descansos = [10, 10];
+        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos)'; descansos = [10, 10];
       } else if (horas === 6) {
-        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos) + 30 minutos de almuerzo sin pago';
-        descansos = [10, 10];
+        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos) + 30 minutos de almuerzo sin pago'; descansos = [10, 10];
+        almuerzoSugerido = inicioMin + 240;
       } else if (horas >= 7 && horas <= 9) {
-        descansoText = '30 minutos de descanso (o 2 descansos de 15 minutos) + 1 hora de almuerzo pagado';
-        descansos = [15, 15];
-        incluyeAlmuerzo = true;
+        descansoText = '30 minutos de descanso (o 2 descansos de 15 minutos) + 1 hora de almuerzo pagado'; descansos = [15, 15]; incluyeAlmuerzo = true;
+        almuerzoSugerido = inicioMin + 240;
       } else if (horas === 10) {
-        descansoText = '40 minutos de descanso (3 descansos: dos de 15 min y uno de 10 min) + 1 hora de almuerzo pagado';
-        descansos = [15, 10, 15];
-        incluyeAlmuerzo = true;
+        descansoText = '40 minutos de descanso (3 descansos: dos de 15 min y uno de 10 min) + 1 hora de almuerzo pagado'; descansos = [15, 10, 15]; incluyeAlmuerzo = true;
+        almuerzoSugerido = inicioMin + 240;
       } else if (horas >= 11) {
-        descansoText = '45 minutos de descanso (3 descansos de 15 min) + 1 hora de almuerzo pagado';
-        descansos = [15, 15, 15];
-        incluyeAlmuerzo = true;
+        descansoText = '45 minutos de descanso (3 descansos de 15 min) + 1 hora de almuerzo pagado'; descansos = [15, 15, 15]; incluyeAlmuerzo = true;
+        almuerzoSugerido = inicioMin + 240;
       }
 
-      // Calcular horarios recomendados de descansos
       let horarios = [];
-      if (descansos.length > 0) {
-        const intervalo = totalMin / (descansos.length + 1);
-        for (let i = 1; i <= descansos.length; i++) {
-          const t = Math.floor(inicioMin + i * intervalo);
-          const h = String(Math.floor(t / 60)).padStart(2, '0');
-          const m = String(t % 60).padStart(2, '0');
-          horarios.push(`${h}:${m}`);
+      let actual = inicioMin;
+
+      if (almuerzoSugerido) {
+        // Insertar descanso antes del almuerzo si hay más de 3.5 horas hasta almuerzo
+        if (almuerzoSugerido - inicioMin >= 180) {
+          const descanso1 = inicioMin + 120;
+          horarios.push(`Descanso 1: ${formatoHora(descanso1)}`);
+          actual = almuerzoSugerido + 60;
+        } else {
+          actual = almuerzoSugerido + 60;
         }
+        horarios.push(`Almuerzo: ${formatoHora(almuerzoSugerido)}`);
       }
+
+      // Distribuir descansos restantes cada 2 a 2.5 horas después del almuerzo
+      let restantes = descansos.length - (horarios.filter(h => h.includes('Descanso')).length);
+      while (restantes > 0) {
+        actual += 120;
+        if (actual >= finMin) break;
+        horarios.push(`Descanso ${horarios.filter(h => h.includes('Descanso')).length + 1}: ${formatoHora(actual)}`);
+        restantes--;
+      }
+
+      let almuerzoTexto = almuerzoSugerido ? `<p><strong>Hora recomendada para almuerzo:</strong> ${formatoHora(almuerzoSugerido)}</p>` : '';
 
       const salarioBrutoExtra = horas * pagoHora * tipoExtra;
       const netoExtra = salarioBrutoExtra * (1 - 0.1067);
@@ -109,12 +117,19 @@
         <div class="bg-gray-50 p-4 rounded shadow">
           <p><strong>Total de horas extra:</strong> ${horas.toFixed(2)} hrs</p>
           <p><strong>Descanso recomendado:</strong> ${descansoText}</p>
-          ${horarios.length > 0 ? `<p><strong>Horarios sugeridos:</strong> ${horarios.join(', ')}</p>` : ''}
+          ${almuerzoTexto}
+          ${horarios.length > 0 ? `<p><strong>Horarios sugeridos:</strong><br>${horarios.join('<br>')}</p>` : ''}
           <p><strong>${incluyeAlmuerzo ? '✅ Incluye' : '❌ No incluye'} 1 hora de almuerzo pagado</strong></p>
           <p><strong>Pago bruto estimado:</strong> ₡${salarioBrutoExtra.toFixed(2)}</p>
           <p><strong>Pago neto estimado (tras CCSS):</strong> ₡${netoExtra.toFixed(2)}</p>
           <p class="mt-2 text-red-600 font-semibold">${alertaRenta}</p>
         </div>`;
+    }
+
+    function formatoHora(minutos) {
+      const h = String(Math.floor(minutos / 60)).padStart(2, '0');
+      const m = String(minutos % 60).padStart(2, '0');
+      return `${h}:${m}`;
     }
   </script>
   <a href="https://leencr.github.io/" class="fixed bottom-4 left-4 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg hover:bg-indigo-700 z-50">
