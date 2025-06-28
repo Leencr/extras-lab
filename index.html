@@ -56,41 +56,61 @@
       }
 
       const horas = totalMin / 60;
-      const descansoLegal = Math.floor(horas) * 5;
-      const bloquesDescanso = Math.floor(horas / 2);
-      const descansoRecomendado = bloquesDescanso * 15;
-      const incluyeAlmuerzo = horas >= 8 && horas <= 12;
+      let descansoText = '';
+      let descansos = [];
+      let incluyeAlmuerzo = false;
 
-      const salarioBrutoExtra = horas * pagoHora * tipoExtra;
-      const netoExtra = salarioBrutoExtra * (1 - 0.1067);
+      if (horas <= 1) {
+        descansoText = '5 minutos de descanso';
+        descansos = [5];
+      } else if (horas <= 2) {
+        descansoText = '10 minutos de descanso';
+        descansos = [10];
+      } else if (horas <= 4) {
+        descansoText = '15 minutos de descanso';
+        descansos = [15];
+      } else if (horas === 5) {
+        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos)';
+        descansos = [10, 10];
+      } else if (horas === 6) {
+        descansoText = '20 minutos de descanso (o 2 descansos de 10 minutos) + 30 minutos de almuerzo sin pago';
+        descansos = [10, 10];
+      } else if (horas >= 7 && horas <= 9) {
+        descansoText = '30 minutos de descanso (o 2 descansos de 15 minutos) + 1 hora de almuerzo pagado';
+        descansos = [15, 15];
+        incluyeAlmuerzo = true;
+      } else if (horas === 10) {
+        descansoText = '40 minutos de descanso (3 descansos: dos de 15 min y uno de 10 min) + 1 hora de almuerzo pagado';
+        descansos = [15, 10, 15];
+        incluyeAlmuerzo = true;
+      } else if (horas >= 11) {
+        descansoText = '45 minutos de descanso (3 descansos de 15 min) + 1 hora de almuerzo pagado';
+        descansos = [15, 15, 15];
+        incluyeAlmuerzo = true;
+      }
 
-      const alertaRenta = salarioBrutoExtra >= 464500 ? '⚠️ Alerta: Este monto podría exceder el mínimo para el cobro de renta (₡464,500).' : '';
-
-      let descansos = bloquesDescanso > 0 ? [] : null;
-      if (descansos !== null) {
-        for (let i = 1; i <= bloquesDescanso; i++) {
-          const tiempoMin = inicioMin + i * 120;
-          const horasDesc = Math.floor(tiempoMin / 60).toString().padStart(2, '0');
-          const minutosDesc = (tiempoMin % 60).toString().padStart(2, '0');
-          descansos.push(`${horasDesc}:${minutosDesc}`);
+      // Calcular horarios recomendados de descansos
+      let horarios = [];
+      if (descansos.length > 0) {
+        const intervalo = totalMin / (descansos.length + 1);
+        for (let i = 1; i <= descansos.length; i++) {
+          const t = Math.floor(inicioMin + i * intervalo);
+          const h = String(Math.floor(t / 60)).padStart(2, '0');
+          const m = String(t % 60).padStart(2, '0');
+          horarios.push(`${h}:${m}`);
         }
       }
 
-      let alternativa = null;
-      if (horas >= 2) {
-        const medio = inicioMin + totalMin / 2;
-        const hAlt = Math.floor(medio / 60).toString().padStart(2, '0');
-        const mAlt = (medio % 60).toString().padStart(2, '0');
-        alternativa = `${hAlt}:${mAlt}`;
-      }
+      const salarioBrutoExtra = horas * pagoHora * tipoExtra;
+      const netoExtra = salarioBrutoExtra * (1 - 0.1067);
+      const alertaRenta = salarioBrutoExtra >= 464500 ? '⚠️ Alerta: Este monto podría exceder el mínimo para el cobro de renta (₡464,500).' : '';
 
       document.getElementById('resultado').innerHTML = `
         <div class="bg-gray-50 p-4 rounded shadow">
           <p><strong>Total de horas extra:</strong> ${horas.toFixed(2)} hrs</p>
-          <p><strong>Descanso legal acumulado:</strong> ${descansoLegal} minutos</p>
-          <p><strong>Descansos recomendados:</strong> ${bloquesDescanso} bloques de 15 min${descansos ? ` (a las ${descansos.join(', ')})` : ''}</p>
-          ${alternativa ? `<p><strong>O un descanso de 30 min a las:</strong> ${alternativa}</p>` : ''}
-          <p><strong>${incluyeAlmuerzo ? '✅ Incluye' : '❌ No incluye'} 1 hora de almuerzo pagada</strong></p>
+          <p><strong>Descanso recomendado:</strong> ${descansoText}</p>
+          ${horarios.length > 0 ? `<p><strong>Horarios sugeridos:</strong> ${horarios.join(', ')}</p>` : ''}
+          <p><strong>${incluyeAlmuerzo ? '✅ Incluye' : '❌ No incluye'} 1 hora de almuerzo pagado</strong></p>
           <p><strong>Pago bruto estimado:</strong> ₡${salarioBrutoExtra.toFixed(2)}</p>
           <p><strong>Pago neto estimado (tras CCSS):</strong> ₡${netoExtra.toFixed(2)}</p>
           <p class="mt-2 text-red-600 font-semibold">${alertaRenta}</p>
